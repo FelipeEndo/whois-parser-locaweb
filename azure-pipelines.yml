@@ -1,0 +1,76 @@
+trigger:
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - v*
+
+resources:
+  containers:
+  - container: builder
+    image: docker-registry.locaweb.com.br/stretch/ruby-dev:2.6
+
+stages:
+  - stage: TestAndQuality
+    pool: LW.Private.Agents
+    displayName: "Tests and Quality"
+    variables:
+      TZ: "America/Sao_Paulo"
+      RAILS_ENV: test
+
+    jobs:
+    - job: UnitTests
+      displayName: "Unit tests"
+      container: builder
+      steps:
+      - template: "azure/setup.yml"
+
+      - script: |
+          COVERAGE=on bundle exec rspec --format documentation --out tmp/rspec.xml
+        displayName: 'Execute tests'
+        continueOnError: no
+        target:
+          container: builder
+
+      - task: PublishTestResults@2
+        condition: always()
+        inputs:
+          testResultsFiles: "tmp/rspec.xml"
+          testRunTitle: "Publish test results"
+
+    - job: Linters
+      displayName: "Linters and Code Quality"
+      container: builder
+      steps:
+      - template: "azure/setup.yml"
+
+  - stage: PublishGem
+    displayName: "Publish gem"
+    pool: LW.Private.Agents
+    condition: "startsWith(variables['Build.SourceBranch'], 'refs/tags/v')"
+    dependsOn: TestAndQuality
+    jobs:
+    - job:
+      container: builder
+      steps:
+      - template: "azure/setup.yml"
+      - script: |
+            bundle exec gem build whois-parser-locaweb.gemspec
+            gemfile=$(ls *.gem)
+            echo "##vso[task.setvariable variable=GEMFILE]$gemfile"
+        displayName: Generate Gem
+
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(GEMFILE)'
+          artifact: 'drop'
+          publishLocation: 'pipeline'
+
+      - script: |
+            VERSION=$(git describe --tags --abbrev=0)
+            echo $VERSION > lib/version
+            sudo gem install geminabox
+            bundle exec gem inabox $(GEMFILE) --host https://gems.locaweb.com.br
+        displayName: Publish Gem
+

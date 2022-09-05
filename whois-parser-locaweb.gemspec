@@ -3,7 +3,7 @@ $:.push File.expand_path('../lib', __FILE__)
 require 'whois/parser/version'
 
 Gem::Specification.new do |s|
-  s.name        = 'whois-parser'
+  s.name        = 'whois-parser-locaweb'
   s.version     = Whois::Parser::VERSION
   s.authors     = ['Simone Carletti']
   s.email       = ['weppos@weppos.net']
@@ -19,10 +19,12 @@ Gem::Specification.new do |s|
   s.test_files       = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.extra_rdoc_files = %w( LICENSE.txt .yardopts )
 
-  s.add_dependency "whois", ">= 4.1.0"
+  s.add_dependency "whois-locaweb", ">= 5.1.0"
   s.add_dependency "activesupport", ">= 4"
 
   s.add_development_dependency "rake"
   s.add_development_dependency "rspec"
   s.add_development_dependency "yard"
+  s.add_development_dependency "geminabox"
 end
+

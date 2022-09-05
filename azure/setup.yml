@@ -1,0 +1,29 @@
+steps:
+- checkout: self
+  persistCredentials: true
+
+- task: Cache@2
+  inputs:
+    key: 'bundler | "$(Agent.OS)"'
+    path: 'vendor/bundle'
+    restoreKeys: |
+      bundler | "$(Agent.OS)"
+      bundler
+    displayName: Cache gems
+
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk'
+  inputs:
+    packageType: sdk
+    version: 2.2.203
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- script: |
+      sudo gem install bundler -v 2.3.11
+      echo "gem: --no-rdoc --no-ri" > ~/.gemrc
+      bundle install --retry=3 --jobs=8 --path vendor/bundle
+  displayName: 'Bundle install'
+  target:
+    container: builder
+
+
